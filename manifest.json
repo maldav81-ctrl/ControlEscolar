@@ -1,0 +1,18 @@
+{
+  "name": "Control Escolar Pro",
+  "short_name": "ControlEscolar",
+  "description": "Sistema de administración escolar offline",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#2c3e50",
+  "theme_color": "#2c3e50",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%233498db'><rect width='512' height='512' rx='100'/><path d='M256 48L32 144v64l224 96 224-96v-64L256 48zm0 136c-22.1 0-40-17.9-40-40s17.9-40 40-40 40 17.9 40 40-17.9 40-40 40zm-112 94v98c0 17.7 57.3 32 112 32s112-14.3 112-32v-98l-112 48-112-48z' fill='white'/></svg>",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
