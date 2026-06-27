@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Escolar Pro v8</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2c3e50">
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #34495e;
+            --accent: #3498db;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #c0392b;
+            --light: #f4f7f6;
+            --white: #ffffff;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+        body { background: var(--light); color: var(--primary); padding-bottom: 70px; }
+
+        /* --- NAVEGACIÓN DEFAULT --- */
+        header { background: var(--primary); color: white; padding: 1rem; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+        .tab-bar { display: flex; background: var(--secondary); position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .tab-btn { flex: 1; padding: 15px 10px; border: none; background: none; color: #bdc3c7; cursor: pointer; font-weight: bold; font-size: 14px; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .tab-btn svg { width: 18px; height: 18px; fill: currentColor; }
+        .tab-btn.active { color: white; background: var(--accent); border-bottom: 4px solid white; }
+
+        /* --- CONTENEDORES --- */
+        .container { max-width: 1100px; margin: 20px auto; padding: 0 15px; }
+        .tab-content { display: none; animation: fadeIn 0.2s; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .card { background: var(--white); padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .card-header-admin { background: #eef2f5; border-left: 5px solid var(--accent); padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        h2 { margin-bottom: 15px; font-size: 1.2rem; display: flex; align-items: center; gap: 10px; }
+        h3 { margin-bottom: 10px; font-size: 1rem; color: var(--secondary); }
+
+        /* --- FORMULARIOS Y BOTONES --- */
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px; }
+        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; background: white; }
+        .btn { padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; justify-content: center; }
+        .btn-sm { padding: 6px 10px; font-size: 12px; }
+        .btn-p { background: var(--accent); color: white; }
+        .btn-s { background: var(--success); color: white; }
+        .btn-d { background: var(--danger); color: white; }
+        .btn-w { background: var(--warning); color: white; }
+
+        /* --- TABLAS --- */
+        .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 700px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #f8f9fa; font-size: 14px; }
+        .student-link { color: var(--accent); cursor: pointer; text-decoration: underline; font-weight: bold; }
+
+        /* --- ASISTENCIA --- */
+        .asistencia-group { display: flex; gap: 3px; }
+        .as-btn { flex: 1; padding: 8px 5px; border: 1px solid #ddd; border-radius: 6px; background: white; cursor: pointer; font-size: 12px; font-weight: bold; }
+        .as-btn.active[data-val="P"] { background: var(--success); color: white; border-color: var(--success); }
+        .as-btn.active[data-val="F"] { background: var(--danger); color: white; border-color: var(--danger); }
+        .as-btn.active[data-val="R"] { background: var(--warning); color: white; border-color: var(--warning); }
+        .as-btn.active[data-val="J"] { background: #9b59b6; color: white; border-color: #9b59b6; }
+
+        /* --- CALIFICACIONES --- */
+        .calif-badge { background: #e8f8f0; color: var(--success); font-weight: bold; padding: 5px 10px; border-radius: 6px; font-size: 16px; }
+        .calif-badge.low { background: #fce8e6; color: var(--danger); }
+
+        /* --- ESTADÍSTICAS --- */
+        .grid-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .stat-box { padding: 20px; border-radius: 10px; text-align: center; color: white; font-weight: bold; }
+        .stat-box.aprobados { background: var(--success); }
+        .stat-box.reprobados { background: var(--danger); }
+        .stat-box.promedio { background: var(--accent); }
+        .stat-num { font-size: 2rem; display: block; margin-top: 5px; }
+        
+        .bar-chart { margin-top: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .bar-item { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+        .bar-label { width: 60px; font-weight: bold; }
+        .bar-container { flex: 1; background: #eee; height: 25px; border-radius: 10px; overflow: hidden; position: relative; }
+        .bar-fill { height: 100%; transition: width 0.5s ease-in-out; }
+        .bar-text { position: absolute; right: 8px; top: 3px; font-size: 11px; font-weight: bold; color: #333; }
+
+        .info-box { background: #ebf5fb; border-left: 4px solid var(--accent); padding: 12px; border-radius: 0 8px 8px 0; font-size: 13px; color: #2c3e50; margin-bottom: 15px; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
+        .modal-content { background: white; padding: 25px; border-radius: 12px; width: 95%; max-width: 500px; max-height: 85vh; overflow-y: auto; }
+        
+        .timeline { margin-top: 15px; border-left: 3px solid #ddd; padding-left: 15px; }
+        .timeline-item { margin-bottom: 15px; position: relative; }
+        .timeline-item::before { content: ''; position: absolute; left: -21px; top: 4px; width: 10px; height: 10px; background: var(--accent); border-radius: 50%; }
+        .timeline-date { font-weight: bold; font-size: 13px; color: #555; }
+        .timeline-body { font-size: 14px; background: #f8f9fa; padding: 8px; border-radius: 6px; margin-top: 3px; }
+
+        /* --- RESPONSIVO MÓVIL --- */
+        @media (max-width: 600px) {
+            body { padding-bottom: 80px; padding-top: 5px; }
+            header { display: none; }
+            .tab-bar { position: fixed; bottom: 0; top: auto; left: 0; right: 0; height: 65px; background: var(--primary); box-shadow: 0 -3px 10px rgba(0,0,0,0.2); }
+            .tab-btn { flex-direction: column; padding: 5px; font-size: 0; color: #a6b0b7; }
+            .tab-btn.active { background: rgba(255,255,255,0.05); color: var(--accent); border-bottom: none; border-top: 4px solid var(--accent); }
+            .tab-btn svg { width: 26px; height: 26px; }
+            .tab-btn span { display: none; }
+            .container { padding: 0 6px; margin: 5px auto; }
+            .card { padding: 12px; border-radius: 8px; margin-bottom: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Control Escolar Pro</h1>
+</header>
+
+<div class="tab-bar">
+    <button class="tab-btn active" onclick="openTab('tab-pase')">
+        <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+        <span>Pase Lista</span>
+    </button>
+    <button class="tab-btn" onclick="openTab('tab-calificaciones')">
+        <svg viewBox="0 0 24 24"><path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5.49 12c.66.36 1.41.59 2.21.69.8.1 1.6.11 2.3.01.5-.07 1-.18 1.48-.32l.02.05-6.01-3.28V12zm6.51 1.1c-.26.06-.54.12-.82.16-.69.11-1.42.12-2.13.04-.71-.08-1.39-.27-2-.55L3 11.23v1.89c0 .77.49 1.46 1.22 1.71l7.01 2.45c.5.17 1.04.17 1.54 0l7.01-2.45c.73-.25 1.22-.94 1.22-1.71v-1.89l-4.23 1.52c-.61.28-1.29.47-2 .55-.71.08-1.44.07-2.13-.04-.28-.04-.56-.1-.82-.16z"/></svg>
+        <span>Notas</span>
+    </button>
+    <button class="tab-btn" onclick="openTab('tab-estadisticas')">
+        <svg viewBox="0 0 24 24"><path d="M10 20h4V4h-4v16zm-6 0h4v-8H4v8zM16 9v11h4V9h-4z"/></svg>
+        <span>Gráficas</span>
+    </button>
+    <button class="tab-btn" onclick="openTab('tab-alumnos')">
+        <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+        <span>Alumnos</span>
+    </button>
+    <button class="tab-btn" onclick="openTab('tab-grupos')">
+        <svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg>
+        <span>Grupos</span>
+    </button>
+    <button class="tab-btn" onclick="openTab('tab-config')">
+        <svg viewBox="0 0 24 24"><path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2v9.67z"/></svg>
+        <span>Sinc</span>
+    </button>
+</div>
+
+<div class="container">
+
+    <div class="card-header-admin">
+        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 140px;">
+                <label style="font-size: 12px; color: var(--secondary);">Ciclo Escolar:</label>
+                <select id="global-ciclo" onchange="cambioConfiguracionGlobal()"></select>
+            </div>
+            <div style="flex: 1; min-width: 140px;">
+                <label style="font-size: 12px; color: var(--secondary);">Trimestre Vigente:</label>
+                <select id="global-trimestre" onchange="cambioConfiguracionGlobal()">
+                    <option value="T1">1° Trimestre</option>
+                    <option value="T2">2° Trimestre</option>
+                    <option value="T3">3° Trimestre</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-pase" class="tab-content active">
+        <div class="card">
+            <h2>Registro Diario</h2>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <div class="form-group" style="flex: 1; min-width: 150px;">
+                    <label>Grupo:</label>
+                    <select id="sel-grupo-pase" onchange="renderPaseLista()"></select>
+                </div>
+                <div class="form-group" style="flex: 1; min-width: 150px;">
+                    <label>Fecha:</label>
+                    <input type="date" id="fecha-pase" onchange="renderPaseLista()">
+                </div>
+            </div>
+            <button class="btn btn-s" style="width: 100%;" onclick="guardarAsistenciaGlobal()">Guardar Registro Diario</button>
+        </div>
+
+        <div class="table-container">
+            <table class="card">
+                <thead>
+                    <tr>
+                        <th>Alumno (Clic para expediente)</th>
+                        <th>Asistencia</th>
+                        <th>Puntos Hoy</th>
+                        <th>Acum. Trimestre</th>
+                        <th>Notas</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-pase"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="tab-calificaciones" class="tab-content">
+        <div class="card">
+            <h2>Escala Proporcional Trimestral (Máx 10)</h2>
+            <div class="form-group" style="max-width: 300px;">
+                <label>Seleccionar Grupo:</label>
+                <select id="sel-grupo-calif" onchange="renderCalificaciones()"></select>
+            </div>
+            <div id="info-escala" style="font-weight: 500; color: #555; margin-top: 5px;"></div>
+        </div>
+
+        <div class="table-container">
+            <table class="card">
+                <thead>
+                    <tr>
+                        <th>Alumno</th>
+                        <th>Puntos del Periodo</th>
+                        <th>Cálculo Regla de Tres</th>
+                        <th>Calificación Final</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-calificaciones"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="tab-estadisticas" class="tab-content">
+        <div class="card">
+            <h2>Desempeño del Grupo en este Periodo</h2>
+            <div class="form-group" style="max-width: 300px;">
+                <label>Grupo:</label>
+                <select id="sel-grupo-stats" onchange="calcularEstadisticasGrupo()"></select>
+            </div>
+            <div class="grid-stats">
+                <div class="stat-box aprobados">Aprobados (≥ 6.0)<span id="stat-aprobados" class="stat-num">0</span></div>
+                <div class="stat-box reprobados">Reprobados (< 6.0)<span id="stat-reprobados" class="stat-num">0</span></div>
+                <div class="stat-box promedio">Promedio Grupal<span id="stat-promedio" class="stat-num">0.0</span></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Comparativa de Aprobación por Grupos (Trimestre Activo)</h2>
+            <div id="comparativa-charts" class="bar-chart"></div>
+        </div>
+    </div>
+
+    <div id="tab-alumnos" class="tab-content">
+        <div class="card">
+            <h2>Alta de Alumno Individual</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <input type="text" id="new-al-nombre" placeholder="Nombre completo">
+                <select id="new-al-grupo"></select>
+            </div>
+            <button class="btn btn-p" style="margin-top: 10px; width: 100%;" onclick="addAlumno()">Registrar Alumno</button>
+        </div>
+
+        <div class="card">
+            <h2>Carga Masiva desde Archivo (CSV)</h2>
+            <div class="info-box">
+                <strong>📌 Estructura CSV:</strong> <code>Nombre Estudiante, Grupo</code>
+            </div>
+            <div class="form-group">
+                <input type="file" id="file-csv-alumnos" accept=".csv" onchange="cargarAlumnosCSV(event)">
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table class="card">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Grupo</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-alumnos-crud"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="tab-grupos" class="tab-content">
+        <div class="card">
+            <h2>Crear Grupo Escolar</h2>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="new-gr-nombre" placeholder="Ej: 1A, 2B...">
+                <button class="btn btn-p" onclick="addGroup()">Crear</button>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table class="card">
+                <thead>
+                    <tr>
+                        <th>Nombre del Grupo</th>
+                        <th>Cant. Alumnos</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-grupos-crud"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="tab-config" class="tab-content">
+        <div class="card">
+            <h2>📊 Reportes y Exportación</h2>
+            <div style="display: grid; grid-template-columns: 1fr; gap: 10px;">
+                <button class="btn btn-s" onclick="exportarTodaLaDBAExcel()">Descargar Base de Datos para Excel (.csv)</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Respaldo Portátil Sistema Completo</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <button class="btn btn-p" onclick="exportarData()">Exportar JSON</button>
+                <button class="btn btn-w" onclick="document.getElementById('file-import').click()">Importar JSON</button>
+                <input type="file" id="file-import" style="display:none" onchange="importarData(event)">
+            </div>
+        </div>
+        <div class="card">
+            <h2>Limpieza Integral</h2>
+            <button class="btn btn-d" onclick="borrarTodo()">Borrar toda la Base de Datos</button>
+        </div>
+    </div>
+
+</div>
+
+<div id="modal-comentario" class="modal">
+    <div class="modal-content">
+        <h3>Agregar Observación Diario</h3>
+        <p id="comentario-alumno-nombre" style="font-weight: bold; margin-bottom: 10px; color: var(--accent);"></p>
+        <input type="hidden" id="comentario-alumno-id">
+        <div class="form-group">
+            <label>Observación:</label>
+            <textarea id="comentario-texto" rows="4"></textarea>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn btn-s" style="flex: 1;" onclick="saveComentario()">Guardar Nota</button>
+            <button class="btn btn-d" style="flex: 1;" onclick="closeModal('modal-comentario')">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<div id="modal-detalle" class="modal">
+    <div class="modal-content">
+        <h2 id="detalle-nombre">Expediente del Alumno</h2>
+        <p id="detalle-grupo" style="font-weight: 600; color: #666; margin-bottom: 15px;"></p>
+        <div style="background: #eaf2f8; padding: 12px; border-radius: 8px; font-weight: bold; margin-bottom: 15px;">
+            Puntaje Acumulado en este Trimestre: <span id="detalle-puntos-totales" style="color: var(--accent); font-size: 1.2rem;">0</span> pts
+        </div>
+        <h3>Historial del Periodo Seleccionado</h3>
+        <div id="detalle-timeline" class="timeline"></div>
+        <button class="btn btn-p" style="width: 100%; margin-top: 20px;" onclick="closeModal('modal-detalle')">Cerrar</button>
+    </div>
+</div>
+
+<script>
+    // --- BASE DE DATOS MEJORADA CON ESTRUCTURA POR PERIODOS ---
+    let db = JSON.parse(localStorage.getItem('edu_db_v8')) || {
+        configGlobal: { ciclo: "2026-2027", trimestre: "T1" },
+        grupos: [],
+        alumnos: [], 
+        asistencias: {} // Indexado como: "ciclo_trimestre_fecha_grupo"
+    };
+
+    // Inicializar ciclos escolares dinámicos en el selector
+    function inicializarSelectoresGlobales() {
+        const selectCiclo = document.getElementById('global-ciclo');
+        const anioActual = new Date().getFullYear();
+        selectCiclo.innerHTML = "";
+        
+        // Generar lista de ciclos cercanos
+        for(let i = -1; i <= 2; i++) {
+            let inicio = anioActual + i;
+            let fin = inicio + 1;
+            let textoCiclo = `${inicio}-${fin}`;
+            selectCiclo.innerHTML += `<option value="${textoCiclo}">${textoCiclo}</option>`;
+        }
+        
+        // Cargar valores guardados en base de datos
+        if(!db.configGlobal) db.configGlobal = { ciclo: `${anioActual}-${anioActual+1}`, trimestre: "T1" };
+        selectCiclo.value = db.configGlobal.ciclo;
+        document.getElementById('global-trimestre').value = db.configGlobal.trimestre;
+    }
+
+    function saveDB() {
+        localStorage.setItem('edu_db_v8', JSON.stringify(db));
+        refreshAll();
+    }
+
+    function cambioConfiguracionGlobal() {
+        db.configGlobal.ciclo = document.getElementById('global-ciclo').value;
+        db.configGlobal.trimestre = document.getElementById('global-trimestre').value;
+        localStorage.setItem('edu_db_v8', JSON.stringify(db));
+        refreshAll();
+    }
+
+    // --- NAVEGACIÓN ---
+    function openTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        
+        if(event && event.currentTarget) event.currentTarget.classList.add('active');
+        
+        if(tabId === 'tab-calificaciones') renderCalificaciones();
+        if(tabId === 'tab-estadisticas') { calcularEstadisticasGrupo(); renderComparativaGrupos(); }
+    }
+
+    // --- GRUPOS ---
+    function addGroup() {
+        const nom = document.getElementById('new-gr-nombre').value.trim();
+        if(!nom || db.grupos.includes(nom)) return alert("Grupo inválido o ya existe");
+        db.grupos.push(nom);
+        document.getElementById('new-gr-nombre').value = "";
+        saveDB();
+    }
+
+    function deleteGroup(nom) {
+        if(!confirm(`¿Borrar el grupo ${nom}?`)) return;
+        db.grupos = db.grupos.filter(g => g !== nom);
+        db.alumnos = db.alumnos.filter(a => a.grupo !== nom);
+        saveDB();
+    }
+
+    // --- ALUMNOS ---
+    function addAlumno() {
+        const nombre = document.getElementById('new-al-nombre').value.trim();
+        const grupo = document.getElementById('new-al-grupo').value;
+        if(!nombre) return alert("Escribe el nombre");
+        db.alumnos.push({ id: String(Date.now()), nombre, grupo });
+        document.getElementById('new-al-nombre').value = "";
+        saveDB();
+    }
+
+    function cargarAlumnosCSV(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const contenido = event.target.result;
+            const lineas = contenido.split(/\r?\n/);
+            let agregados = 0;
+            lineas.forEach(linea => {
+                if(!linea.trim()) return;
+                const col = linea.split(',');
+                if(col.length >= 2) {
+                    const nombre = col[0].trim();
+                    const grupo = col[1].trim();
+                    if(nombre && grupo) {
+                        if(!db.grupos.includes(grupo)) db.grupos.push(grupo);
+                        db.alumnos.push({ id: String(Date.now() + Math.floor(Math.random()*10000)), nombre, grupo });
+                        agregados++;
+                    }
+                }
+            });
+            if(agregados > 0) { saveDB(); alert(`Se añadieron ${agregados} alumnos.`); }
+            document.getElementById('file-csv-alumnos').value = "";
+        };
+        reader.readAsText(file, 'UTF-8');
+    }
+
+    function deleteAlumno(id) {
+        if(!confirm("¿Eliminar este alumno?")) return;
+        db.alumnos = db.alumnos.filter(a => a.id !== String(id));
+        saveDB();
+    }
+
+    // --- LOGICA DE FILTRADO TEMPORAL TRIMESTRAL ---
+    function calcularPuntosTrimestrales(alumnoId) {
+        let total = 0;
+        const cicloActivo = db.configGlobal.ciclo;
+        const trimActivo = db.configGlobal.trimestre;
+
+        Object.keys(db.asistencias).forEach(clave => {
+            // Estructura de la clave: ciclo_trimestre_fecha_grupo
+            if(clave.startsWith(`${cicloActivo}_${trimActivo}_`)) {
+                if(db.asistencias[clave] && db.asistencias[clave][alumnoId]) {
+                    total += parseInt(db.asistencias[clave][alumnoId].puntos || 0);
+                }
+            }
+        });
+        return total;
+    }
+
+    // --- PASE DE LISTA ---
+    function renderPaseLista() {
+        const grupo = document.getElementById('sel-grupo-pase').value;
+        const fecha = document.getElementById('fecha-pase').value;
+        const tbody = document.getElementById('tbody-pase');
+        if(!tbody) return;
+        tbody.innerHTML = "";
+
+        if(!grupo || !fecha) return;
+
+        const lista = db.alumnos.filter(a => a.grupo === grupo).sort((a,b) => a.nombre.localeCompare(b.nombre));
+        
+        // Generar clave única segmentada por Ciclo y Trimestre
+        const claveDiaria = `${db.configGlobal.ciclo}_${db.configGlobal.trimestre}_${fecha}_${grupo}`;
+        
+        if(!db.asistencias[claveDiaria]) db.asistencias[claveDiaria] = {};
+
+        lista.forEach(al => {
+            if(!db.asistencias[claveDiaria][al.id]) {
+                db.asistencias[claveDiaria][al.id] = { asis: "P", puntos: 0, nota: "" };
+            }
+
+            const registroDiario = db.asistencias[claveDiaria][al.id];
+            const valAsis = registroDiario.asis || "P";
+            const puntosHoy = registroDiario.puntos || 0;
+            const puntosTotales = calcularPuntosTrimestrales(al.id);
+            const tieneNota = registroDiario.nota && registroDiario.nota.trim() !== "" ? "btn-w" : "btn-p";
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong class="student-link" onclick="verExpedienteAlumno('${al.id}')">${al.nombre}</strong></td>
+                <td>
+                    <div class="asistencia-group" data-id="${al.id}">
+                        <button class="as-btn ${valAsis==='P'?'active':''}" data-val="P" onclick="setAs(this, '${al.id}')">P</button>
+                        <button class="as-btn ${valAsis==='F'?'active':''}" data-val="F" onclick="setAs(this, '${al.id}')">F</button>
+                        <button class="as-btn ${valAsis==='R'?'active':''}" data-val="R" onclick="setAs(this, '${al.id}')">R</button>
+                        <button class="as-btn ${valAsis==='J'?'active':''}" data-val="J" onclick="setAs(this, '${al.id}')">J</button>
+                    </div>
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-d" onclick="addPtsDiarios('${al.id}',-1)">-</button>
+                    <b style="min-width:30px; display:inline-block; text-align:center">${puntosHoy}</b>
+                    <button class="btn btn-sm btn-s" onclick="addPtsDiarios('${al.id}',1)">+</button>
+                </td>
+                <td><span style="font-weight:bold; color:var(--secondary);">${puntosTotales} pts</span></td>
+                <td>
+                    <button class="btn btn-sm ${tieneNota}" onclick="abrirModalComentario('${al.id}', '${al.nombre}')">📝 Nota</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function setAs(btn, alId) {
+        const parent = btn.parentElement;
+        parent.querySelectorAll('.as-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const grupo = document.getElementById('sel-grupo-pase').value;
+        const fecha = document.getElementById('fecha-pase').value;
+        const clave = `${db.configGlobal.ciclo}_${db.configGlobal.trimestre}_${fecha}_${grupo}`;
+        db.asistencias[clave][alId].asis = btn.getAttribute('data-val');
+        localStorage.setItem('edu_db_v8', JSON.stringify(db));
+    }
+
+    function addPtsDiarios(alId, val) {
+        const grupo = document.getElementById('sel-grupo-pase').value;
+        const fecha = document.getElementById('fecha-pase').value;
+        const clave = `${db.configGlobal.ciclo}_${db.configGlobal.trimestre}_${fecha}_${grupo}`;
+        db.asistencias[clave][alId].puntos = (db.asistencias[clave][alId].puntos || 0) + val;
+        localStorage.setItem('edu_db_v8', JSON.stringify(db));
+        renderPaseLista();
+    }
+
+    function abrirModalComentario(alId, nombre) {
+        const grupo = document.getElementById('sel-grupo-pase').value;
+        const fecha = document.getElementById('fecha-pase').value;
+        const clave = `${db.configGlobal.ciclo}_${db.configGlobal.trimestre}_${fecha}_${grupo}`;
+        document.getElementById('comentario-alumno-id').value = alId;
+        document.getElementById('comentario-alumno-nombre').innerText = `${nombre} (${fecha})`;
+        document.getElementById('comentario-texto').value = db.asistencias[clave][alId].nota || "";
+        document.getElementById('modal-comentario').style.display = 'flex';
+    }
+
+    function saveComentario() {
+        const alId = document.getElementById('comentario-alumno-id').value;
+        const texto = document.getElementById('comentario-texto').value;
+        const grupo = document.getElementById('sel-grupo-pase').value;
+        const fecha = document.getElementById('fecha-pase').value;
+        const clave = `${db.configGlobal.ciclo}_${db.configGlobal.trimestre}_${fecha}_${grupo}`;
+        db.asistencias[clave][alId].nota = texto;
+        closeModal('modal-comentario');
+        saveDB();
+    }
+
+    function guardarAsistenciaGlobal() {
+        saveDB();
+        alert("Registro del día guardado con éxito.");
+    }
+
+    // --- EXPEDIENTE RECONSTRUIDO FILTRADO ---
+    function verExpedienteAlumno(alId) {
+        const alumno = db.alumnos.find(a => a.id === alId);
+        if(!alumno) return;
+
+        const cicloActivo = db.configGlobal.ciclo;
+        const trimActivo = db.configGlobal.trimestre;
+
+        document.getElementById('detalle-nombre').innerText = alumno.nombre;
+        document.getElementById('detalle-grupo').innerText = `Grupo: ${alumno.grupo || "Sin grupo"} | Ciclo: ${cicloActivo} | ${trimActivo.replace('T', 'Trimestre ')}`;
+        document.getElementById('detalle-puntos-totales').innerText = calcularPuntosTrimestrales(alId);
+
+        const timeline = document.getElementById('detalle-timeline');
+        timeline.innerHTML = "";
+
+        let registrosHistoricos = [];
+        Object.keys(db.asistencias).forEach(clave => {
+            // Filtrar solo los registros que correspondan al ciclo y trimestre activo
+            if(clave.startsWith(`${cicloActivo}_${trimActivo}_`) && db.asistencias[clave][alId]) {
+                const partes = clave.split('_');
+                const fechaCorta = partes[2]; // Extrae el campo fecha
+                registrosHistoricos.push({ fecha: fechaCorta, data: db.asistencias[clave][alId] });
+            }
+        });
+
+        registrosHistoricos.sort((a,b) => b.fecha.localeCompare(a.fecha));
+
+        if(registrosHistoricos.length === 0) {
+            timeline.innerHTML = "<p style='color:#888; font-style:italic;'>Sin historial en este trimestre.</p>";
+        } else {
+            registrosHistoricos.forEach(reg => {
+                const item = document.createElement('div');
+                item.className = "timeline-item";
+                let trad = { "P": "Asistencia (P)", "F": "Falta (F)", "R": "Retardo (R)", "J": "Justificado (J)" };
+                item.innerHTML = `<div class="timeline-date">${reg.fecha}</div><div class="timeline-body"><strong>${trad[reg.data.asis] || 'P'}</strong> | ${reg.data.puntos || 0} pts ${reg.data.nota ? '<br>Nota: '+reg.data.nota : ''}</div>`;
+                timeline.appendChild(item);
+            });
+        }
+        document.getElementById('modal-detalle').style.display = 'flex';
+    }
+
+    // --- OPERACIONES TRIMESTRALES DE CALIFICACIÓN ---
+    function obtenerCalificacionAlumno(alId, maxPuntaje) {
+        const pts = calcularPuntosTrimestrales(alId);
+        if (maxPuntaje <= 0 || pts <= 0) return 5.0;
+        let calif = (pts * 10) / maxPuntaje;
+        calif = Math.round(calif * 10) / 10;
+        return calif < 6.0 ? 5.0 : calif;
+    }
+
+    function renderCalificaciones() {
+        const grupo = document.getElementById('sel-grupo-calif').value;
+        const tbody = document.getElementById('tbody-calificaciones');
+        const infoEscala = document.getElementById('info-escala');
+        if(!tbody) return;
+        tbody.innerHTML = "";
+        if(!grupo) return;
+
+        const alumnosGrupo = db.alumnos.filter(a => a.grupo === grupo);
+        let maxPuntaje = 0;
+        alumnosGrupo.forEach(a => { const pts = calcularPuntosTrimestrales(a.id); if(pts > maxPuntaje) maxPuntaje = pts; });
+        
+        infoEscala.innerHTML = maxPuntaje <= 0 ? `⚠️ Escala base mínima: 5.0.` : `🎯 Máximo puntaje del periodo: <strong>${maxPuntaje} pts</strong> (= Calificación 10.0).`;
+        
+        alumnosGrupo.sort((a,b) => a.nombre.localeCompare(b.nombre)).forEach(al => {
+            const ptsTotales = calcularPuntosTrimestrales(al.id);
+            const calificacion = obtenerCalificacionAlumno(al.id, maxPuntaje);
+            tbody.innerHTML += `<tr><td><strong>${al.nombre}</strong></td><td>${ptsTotales} pts</td><td>${maxPuntaje > 0 && ptsTotales > 0 ? '('+ptsTotales+' pts × 10) ÷ '+maxPuntaje : 'Sin puntos'}</td><td><span class="calif-badge ${calificacion < 6 ? 'low' : ''}">${calificacion.toFixed(1)}</span></td></tr>`;
+        });
+    }
+
+    // --- ESTADÍSTICAS PERIODICAS ---
+    function calcularEstadisticasGrupo() {
+        const grupo = document.getElementById('sel-grupo-stats').value;
+        if(!grupo) return;
+        const alumnos = db.alumnos.filter(a => a.grupo === grupo);
+        if(alumnos.length === 0) {
+            document.getElementById('stat-aprobados').innerText = "0"; document.getElementById('stat-reprobados').innerText = "0"; document.getElementById('stat-promedio').innerText = "0.0"; return;
+        }
+        let maxPuntaje = 0;
+        alumnos.forEach(a => { const pts = calcularPuntosTrimestrales(a.id); if(pts > maxPuntaje) maxPuntaje = pts; });
+        let ap = 0, re = 0, suma = 0;
+        alumnos.forEach(al => { const calif = obtenerCalificacionAlumno(al.id, maxPuntaje); if(calif >= 6.0) ap++; else re++; suma += calif; });
+        document.getElementById('stat-aprobados').innerText = ap; document.getElementById('stat-reprobados').innerText = re; document.getElementById('stat-promedio').innerText = (suma / alumnos.length).toFixed(1);
+    }
+
+    function renderComparativaGrupos() {
+        const contenedor = document.getElementById('comparativa-charts');
+        if(!contenedor) return;
+        contenedor.innerHTML = "";
+        db.grupos.forEach(g => {
+            const alumnos = db.alumnos.filter(a => a.grupo === g);
+            let porc = 0;
+            if(alumnos.length > 0) {
+                let max = 0; alumnos.forEach(a => { const pts = calcularPuntosTrimestrales(a.id); if(pts > max) max = pts; });
+                let ap = 0; alumnos.forEach(al => { if(obtenerCalificacionAlumno(al.id, max) >= 6.0) ap++; });
+                porc = Math.round((ap / alumnos.length) * 100);
+            }
+            contenedor.innerHTML += `<div class="bar-item"><div class="bar-label">${g}</div><div class="bar-container"><div class="bar-fill" style="width: ${porc}%; background: ${porc >= 60 ? 'var(--success)':'var(--danger)'};"></div><div class="bar-text">${porc}% Aprobados (${alumnos.length} Alum.)</div></div></div>`;
+        });
+    }
+
+    // --- REFRESH GENERAL ---
+    function refreshAll() {
+        const prevPase = document.getElementById('sel-grupo-pase').value;
+        const prevCalif = document.getElementById('sel-grupo-calif').value;
+        const prevStats = document.getElementById('sel-grupo-stats').value;
+        
+        const grupoSelects = ['sel-grupo-pase', 'sel-grupo-calif', 'sel-grupo-stats', 'new-al-grupo'];
+        const options = db.grupos.map(g => `<option value="${g}">${g}</option>`).join('');
+        grupoSelects.forEach(s => { const el = document.getElementById(s); if(el) el.innerHTML = options; });
+        
+        if(db.grupos.includes(prevPase)) document.getElementById('sel-grupo-pase').value = prevPase;
+        if(db.grupos.includes(prevCalif)) document.getElementById('sel-grupo-calif').value = prevCalif;
+        if(db.grupos.includes(prevStats)) document.getElementById('sel-grupo-stats').value = prevStats;
+
+        document.getElementById('tbody-alumnos-crud').innerHTML = db.alumnos.map(a => `<tr><td>${a.nombre}</td><td><span class="btn btn-sm" style="background:#eee">${a.grupo || 'Sin grupo'}</span></td><td><button class="btn btn-sm btn-d" onclick="deleteAlumno('${a.id}')">Borrar</button></td></tr>`).join('');
+        document.getElementById('tbody-grupos-crud').innerHTML = db.grupos.map(g => `<tr><td><strong>${g}</strong></td><td>${db.alumnos.filter(a => a.grupo === g).length} Alumnos</td><td><button class="btn btn-sm btn-d" onclick="deleteGroup('${g}')">Borrar</button></td></tr>`).join('');
+        
+        renderPaseLista();
+    }
+
+    // --- RESPALDO Y EXCEL ---
+    function exportarTodaLaDBAExcel() {
+        if(db.alumnos.length === 0) return alert("Sin datos.");
+        let csv = "Ciclo,Trimestre,ID Alumno,Estudiante,Grupo,Puntos Periodo Activo\n";
+        db.alumnos.forEach(a => { 
+            csv += `${db.configGlobal.ciclo},${db.configGlobal.trimestre},${a.id},${a.nombre.replace(/,/g, ' ')},${a.grupo || 'Sin Grupo'},${calcularPuntosTrimestrales(a.id)}\n`; 
+        });
+        const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
+        const dl = document.createElement('a');
+        dl.setAttribute("href", URL.createObjectURL(blob));
+        dl.setAttribute("download", `REPORTE_${db.configGlobal.ciclo}_${db.configGlobal.trimestre}.csv`);
+        dl.click();
+    }
+
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    function exportarData() {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
+        const dl = document.createElement('a'); dl.setAttribute("href", dataStr); dl.setAttribute("download", `respaldo_sistema.json`); dl.click();
+    }
+    function importarData(e) {
+        const reader = new FileReader();
+        reader.onload = function(event) { db = JSON.parse(event.target.result); saveDB(); location.reload(); };
+        reader.readAsText(e.target.files[0]);
+    }
+    function borrarTodo() { if(confirm("¿Borrar todo definitivamente?")) { localStorage.clear(); location.reload(); } }
+
+    // Ejecución Inicial
+    inicializarSelectoresGlobales();
+    document.getElementById('fecha-pase').value = new Date().toISOString().slice(0, 10);
+    refreshAll();
+</script>
+</body>
+</html>
